@@ -166,7 +166,10 @@ export default class BasicDay extends Component {
   renderContent() {
     return (
       <Fragment>
+        <View 
+        style={this.getContainerStyle()}>
         {this.renderText()}
+        </View>
         {this.renderMarking()}
       </Fragment>
     );
@@ -178,8 +181,8 @@ export default class BasicDay extends Component {
     return (
       <TouchableOpacity
         testID={this.props.testID}
-        style={this.getContainerStyle()}
         disabled={this.shouldDisableTouchEvent()}
+        style={this.style.base}
         activeOpacity={activeOpacity}
         onPress={!this.shouldDisableTouchEvent() ? this.onPress : undefined}
         onLongPress={!this.shouldDisableTouchEvent() ? this.onLongPress : undefined}

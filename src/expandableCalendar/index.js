@@ -22,9 +22,9 @@ const POSITIONS = {
 };
 const SPEED = 20;
 const BOUNCINESS = 6;
-const CLOSED_HEIGHT = 120; // header + 1 week
+const CLOSED_HEIGHT = 126; // header + 1 week + 6 
 const WEEK_HEIGHT = 46;
-const KNOB_CONTAINER_HEIGHT = 20;
+const KNOB_CONTAINER_HEIGHT = 25;
 const HEADER_HEIGHT = 68;
 const DAY_NAMES_PADDING = 24;
 
@@ -48,6 +48,8 @@ class ExpandableCalendar extends Component {
     disablePan: PropTypes.bool,
     /** whether to hide the knob  */
     hideKnob: PropTypes.bool,
+    /** render custom knob  */
+    renderKnob: PropTypes.func,
     /** source for the left arrow image */
     leftArrowImageSource: PropTypes.oneOfType([PropTypes.object, PropTypes.number, PropTypes.func]),
     /** source for the right arrow image */
@@ -55,7 +57,9 @@ class ExpandableCalendar extends Component {
     /** whether to have shadow/elevation for the calendar */
     allowShadow: PropTypes.bool,
     /** whether to disable the week scroll in closed position */
-    disableWeekScroll: PropTypes.bool
+    disableWeekScroll: PropTypes.bool,
+    /** whether to scroll month instead of week in closed position */
+    scrollMonthWhenClosed: PropTypes.bool
   };
 
   static defaultProps = {
@@ -162,7 +166,7 @@ class ExpandableCalendar extends Component {
     if (this.props.horizontal) {
       const d = parseDate(this.props.context.date);
 
-      if (this.state.position === POSITIONS.OPEN) {
+      if (this.props.scrollMonthWhenClosed || this.state.position === POSITIONS.OPEN) {
         d.setDate(1);
         d.addMonths(next ? 1 : -1);
       } else {
@@ -462,9 +466,10 @@ class ExpandableCalendar extends Component {
 
   renderKnob() {
     // TODO: turn to TouchableOpacity with onPress that closes it
+    const { renderKnob } = this.props
     return (
       <View style={this.style.knobContainer} pointerEvents={'none'} testID={`${this.props.testID}-knob`}>
-        <View style={this.style.knob} testID={CALENDAR_KNOB} />
+        {renderKnob ? renderKnob() : (<View style={this.style.knob} testID={CALENDAR_KNOB} />)}
       </View>
     );
   }
