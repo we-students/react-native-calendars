@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import React, {Component} from 'react';
-import {AccessibilityInfo, PanResponder, Animated, View, Text, Image} from 'react-native';
+import {AccessibilityInfo, PanResponder, Animated, View, Text, Image, Pressable} from 'react-native';
 import PropTypes from 'prop-types';
 import XDate from 'xdate';
 import {CALENDAR_KNOB} from '../testIDs';
@@ -22,9 +22,9 @@ const POSITIONS = {
 };
 const SPEED = 20;
 const BOUNCINESS = 6;
-const CLOSED_HEIGHT = 126; // header + 1 week + 6 
+const CLOSED_HEIGHT = 106; // header + 1 week + 6 
 const WEEK_HEIGHT = 46;
-const KNOB_CONTAINER_HEIGHT = 25;
+const KNOB_CONTAINER_HEIGHT = 30;
 const HEADER_HEIGHT = 68;
 const DAY_NAMES_PADDING = 24;
 
@@ -77,6 +77,7 @@ class ExpandableCalendar extends Component {
     super(props);
 
     this.style = styleConstructor(props.theme);
+    console.log('calendar style', this.style.knobContainer);
     this.closedHeight = CLOSED_HEIGHT + (props.hideKnob ? 0 : KNOB_CONTAINER_HEIGHT);
     this.numberOfWeeks = this.getNumberOfWeeksInMonth(XDate(this.props.context.date));
     this.openHeight = this.getOpenHeight();
@@ -445,7 +446,8 @@ class ExpandableCalendar extends Component {
           left: 0,
           right: 0,
           top: HEADER_HEIGHT + (commons.isAndroid ? 8 : 4), // align row on top of calendar's first row
-          opacity: position === POSITIONS.OPEN ? 0 : 1
+          opacity: position === POSITIONS.OPEN ? 0 : 1,
+          height: CLOSED_HEIGHT - HEADER_HEIGHT
         }}
         pointerEvents={position === POSITIONS.CLOSED ? 'auto' : 'none'}
       >
@@ -468,9 +470,14 @@ class ExpandableCalendar extends Component {
     // TODO: turn to TouchableOpacity with onPress that closes it
     const { renderKnob } = this.props
     return (
-      <View style={this.style.knobContainer} pointerEvents={'none'} testID={`${this.props.testID}-knob`}>
-        {renderKnob ? renderKnob() : (<View style={this.style.knob} testID={CALENDAR_KNOB} />)}
-      </View>
+      <Pressable onPress={() => { 
+        this.bounceToPosition(this.state.position === POSITIONS.OPEN ? CLOSED_HEIGHT + KNOB_CONTAINER_HEIGHT : this.getOpenHeight())
+      }}>
+        <View style={[this.style.knobContainer, { height: 1, width: '100%'}]}  testID={`${this.props.testID}-knob`}>
+          {renderKnob ? renderKnob() : (<View style={this.style.knob} testID={CALENDAR_KNOB} />)}
+        </View>
+      </Pressable>
+
     );
   }
 
@@ -511,7 +518,7 @@ class ExpandableCalendar extends Component {
             ref={e => {
               this.wrapper = e;
             }}
-            style={{height: deltaY}}
+            style={{height: deltaY,}}
             {...this.panResponder.panHandlers}
           >
             <CalendarList
