@@ -4,10 +4,6 @@ import {AccessibilityInfo, PanResponder, Animated, View, Text, Image, Pressable}
 import PropTypes from 'prop-types';
 import memoize from 'memoize-one';
 import XDate from 'xdate';
-
-import React, {Component} from 'react';
-import {AccessibilityInfo, PanResponder, Animated, View, Text, Image} from 'react-native';
-
 import {CALENDAR_KNOB} from '../testIDs';
 import dateutils from '../dateutils';
 import {parseDate, toMarkingFormat} from '../interface';
