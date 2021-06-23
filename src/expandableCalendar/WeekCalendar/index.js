@@ -1,18 +1,21 @@
-import _ from 'lodash';
-import React, {Component} from 'react';
-import {FlatList, View, Text} from 'react-native';
-import {Map} from 'immutable';
+import memoize from 'memoize-one';
 import PropTypes from 'prop-types';
 import XDate from 'xdate';
 
-import styleConstructor from './style';
-import CalendarList from '../calendar-list';
-import Week from '../expandableCalendar/week';
-import asCalendarConsumer from './asCalendarConsumer';
-import {weekDayNames} from '../dateutils';
+import React, {Component} from 'react';
+import {FlatList, View, Text} from 'react-native';
+import {Map} from 'immutable';
 
-const commons = require('./commons');
-const UPDATE_SOURCES = commons.UPDATE_SOURCES;
+import {extractComponentProps} from '../../component-updater';
+import {weekDayNames} from '../../dateutils';
+import {toMarkingFormat} from '../../interface';
+import styleConstructor from '../style';
+import asCalendarConsumer from '../asCalendarConsumer';
+import CalendarList from '../../calendar-list';
+import Week from '../week';
+import Presenter from './presenter';
+
+const commons = require('../commons');
 const NUMBER_OF_PAGES = 2; // must be a positive number
 const applyAndroidRtlFix = commons.isAndroid && commons.isRTL;
 
@@ -44,22 +47,24 @@ class WeekCalendar extends Component {
 
     this.style = styleConstructor(props.theme);
 
+    this.presenter = new Presenter(props);
     this.list = React.createRef();
     this.page = NUMBER_OF_PAGES;
     // On Android+RTL there's an initial scroll that cause issues
     this.firstAndroidRTLScrollIgnored = !applyAndroidRtlFix;
 
     this.state = {
-      items: this.getDatesArray()
+      items: this.presenter.getDatesArray(this.props)
     };
   }
 
   componentDidUpdate(prevProps) {
-    const {updateSource, date} = this.props.context;
+    const {context} = this.props;
+    const {shouldComponentUpdate, getDatesArray, scrollToIndex} = this.presenter;
 
-    if (date !== prevProps.context.date && updateSource !== UPDATE_SOURCES.WEEK_SCROLL) {
-      this.setState({items: this.getDatesArray()});
-      this.list.current.scrollToIndex({animated: false, index: NUMBER_OF_PAGES});
+    if (shouldComponentUpdate(context, prevProps.context)) {
+      this.setState({items: getDatesArray(this.props)});
+      scrollToIndex(false);
     }
   }
 
@@ -88,27 +93,15 @@ class WeekCalendar extends Component {
     // leave the current date in the visible week as is
     const dd = weekIndex === 0 ? d : d.addDays(firstDay - dayOfTheWeek);
     const newDate = dd.addWeeks(weekIndex);
-    return newDate.toString('yyyy-MM-dd');
+    return toMarkingFormat(newDate);
   }
 
-  getMarkedDates() {
-    const {context, markedDates} = this.props;
-
-    if (markedDates) {
-      const marked = _.cloneDeep(markedDates);
-
-      if (marked[context.date]) {
-        marked[context.date].selected = true;
-      } else {
-        marked[context.date] = {selected: true};
-      }
-      return marked;
-    }
-    return {[context.date]: {selected: true}};
-  }
+  getWeekStyle = memoize((width, style) => {
+    return [{width}, style];
+  });
 
   onDayPress = value => {
-    _.invoke(this.props.context, 'setDate', value.dateString, UPDATE_SOURCES.DAY_PRESS);
+    this.presenter.onDayPressed(this.props.context, value);
   };
 
   onScroll = ({
@@ -116,77 +109,49 @@ class WeekCalendar extends Component {
       contentOffset: {x}
     }
   }) => {
-    if (!this.firstAndroidRTLScrollIgnored) {
-      this.firstAndroidRTLScrollIgnored = true;
-      return;
-    }
+    const {onScroll} = this.presenter;
+    const {context} = this.props;
+    const {items} = this.state;
+    const {containerWidth, page} = this;
 
-    // Fix reversed offset on Android+RTL
-    if (applyAndroidRtlFix) {
-      const numOfPages = this.state.items.length - 1;
-      const overallWidth = numOfPages * this.containerWidth;
-      x = overallWidth - x;
-    }
-
-    const newPage = Math.round(x / this.containerWidth);
-
-    if (this.page !== newPage) {
-      const {items} = this.state;
+    const updateState = (newData, newPage) => {
       this.page = newPage;
+      this.setState({items: [...newData]});
+    };
 
-      _.invoke(this.props.context, 'setDate', items[this.page], UPDATE_SOURCES.WEEK_SCROLL);
-
-      if (this.page === items.length - 1) {
-        for (let i = 0; i <= NUMBER_OF_PAGES; i++) {
-          items[i] = items[i + NUMBER_OF_PAGES];
-        }
-        this.setState({items: [...items]});
-      } else if (this.page === 0) {
-        for (let i = items.length - 1; i >= NUMBER_OF_PAGES; i--) {
-          items[i] = items[i - NUMBER_OF_PAGES];
-        }
-        this.setState({items: [...items]});
-      }
-    }
+    onScroll({context, updateState, x, page, items, width: containerWidth});
   };
 
   onMomentumScrollEnd = () => {
     const {items} = this.state;
-    const isFirstPage = this.page === 0;
-    const isLastPage = this.page === items.length - 1;
+    const {onMomentumScrollEnd} = this.presenter;
 
-    if (isFirstPage || isLastPage) {
-      this.list.current.scrollToIndex({animated: false, index: NUMBER_OF_PAGES});
-      this.page = NUMBER_OF_PAGES;
-      const newWeekArray = this.getDatesArray();
-
-      if (isLastPage) {
-        for (let i = NUMBER_OF_PAGES + 1; i < items.length; i++) {
-          items[i] = newWeekArray[i];
-        }
-      } else {
-        for (let i = 0; i < NUMBER_OF_PAGES; i++) {
-          items[i] = newWeekArray[i];
-        }
-      }
-
+    const updateItems = items => {
       setTimeout(() => {
         this.setState({items: [...items]});
       }, 100);
-    }
+    };
+
+    onMomentumScrollEnd({items, props: this.props, page: this.page, updateItems});
   };
 
   renderItem = ({item}) => {
-    const {calendarWidth, style, onDayPress, ...others} = this.props;
+    const {style, onDayPress, markedDates, firstDay, ...others} = extractComponentProps(Week, this.props);
+    const {context} = this.props;
+
+    const isSameWeek = this.presenter.isSameWeek(item, context.date, firstDay);
+    const currentContext = isSameWeek ? context : undefined;
 
     return (
       <Week
         {...others}
         key={item}
         current={item}
-        style={[{width: calendarWidth || this.containerWidth}, style]}
-        markedDates={this.getMarkedDates()}
+        firstDay={firstDay}
+        style={this.getWeekStyle(this.containerWidth, style)}
+        markedDates={markedDates}
         onDayPress={onDayPress || this.onDayPress}
+        context={currentContext}
       />
     );
   };
@@ -201,40 +166,45 @@ class WeekCalendar extends Component {
 
   keyExtractor = (item, index) => index.toString();
 
+  renderWeekDaysNames = memoize(weekDaysNames => {
+    return weekDaysNames.map((day, idx) => (
+      <Text
+        allowFontScaling={false}
+        key={idx}
+        style={this.style.dayHeader}
+        numberOfLines={1}
+        accessibilityLabel={''}
+        // accessible={false} // not working
+        // importantForAccessibility='no'
+      >
+        {day}
+      </Text>
+    ));
+  });
+
   render() {
     const {allowShadow, firstDay, hideDayNames, current, context} = this.props;
     const {items} = this.state;
-    let weekDaysNames = weekDayNames(firstDay);
+    const weekDaysNames = weekDayNames(firstDay);
     const extraData = Map({
       current,
       date: context.date,
       firstDay
     });
+
     return (
       <View
         testID={this.props.testID}
-        style={[allowShadow && this.style.containerShadow, !hideDayNames && {paddingBottom: 6}]}
+        style={[allowShadow && this.style.containerShadow, !hideDayNames && this.style.containerWrapper]}
       >
         {!hideDayNames && (
-          <View style={[this.style.week, {marginTop: 12, marginBottom: -2}]}>
+          <View style={[this.style.week, this.style.weekCalendar]}>
             {/* {this.props.weekNumbers && <Text allowFontScaling={false} style={this.style.dayHeader}></Text>} */}
-            {weekDaysNames.map((day, idx) => (
-              <Text
-                allowFontScaling={false}
-                key={idx}
-                style={this.style.dayHeader}
-                numberOfLines={1}
-                accessibilityLabel={''}
-                // accessible={false} // not working
-                // importantForAccessibility='no'
-              >
-                {day}
-              </Text>
-            ))}
+            {this.renderWeekDaysNames(weekDaysNames)}
           </View>
         )}
         <FlatList
-          ref={this.list}
+          ref={this.presenter.list}
           data={items}
           extraData={extraData}
           style={this.style.container}

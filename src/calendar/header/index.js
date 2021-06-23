@@ -1,8 +1,11 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
+import memoize from 'memoize-one';
 import XDate from 'xdate';
+
 import React, {Component, Fragment} from 'react';
 import {ActivityIndicator, Platform, View, Text, TouchableOpacity, Image} from 'react-native';
+
 import {shouldUpdate} from '../../component-updater';
 import {weekDayNames} from '../../dateutils';
 import {
@@ -91,6 +94,7 @@ class CalendarHeader extends Component {
     if (typeof onPressArrowLeft === 'function') {
       return onPressArrowLeft(this.subtractMonth, month);
     }
+
     return this.subtractMonth();
   };
 
@@ -100,10 +104,11 @@ class CalendarHeader extends Component {
     if (typeof onPressArrowRight === 'function') {
       return onPressArrowRight(this.addMonth, month);
     }
+
     return this.addMonth();
   };
 
-  renderWeekDays = weekDaysNames => {
+  renderWeekDays = memoize(weekDaysNames => {
     const {disabledDaysIndexes} = this.props;
 
     return weekDaysNames.map((day, idx) => {
@@ -113,13 +118,17 @@ class CalendarHeader extends Component {
         dayStyle.push(this.style.disabledDayHeader);
       }
 
+      if (this.style[`dayTextAtIndex${idx}`]) {
+        dayStyle.push(this.style[`dayTextAtIndex${idx}`]);
+      }
+
       return (
         <Text allowFontScaling={false} key={idx} style={dayStyle} numberOfLines={1} accessibilityLabel={''}>
           {day}
         </Text>
       );
     });
-  };
+  });
 
   renderHeader = () => {
     const {renderHeader, month, monthFormat, testID, webAriaLevel} = this.props;
