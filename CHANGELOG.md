@@ -210,7 +210,7 @@
 ### Fix
 - Day components - fix for 'disableTouchEvent' marking to disable interactions for all marking types.
 
-## [1.233.0] = 2020-1-19
+## [1.233.0] - 2020-1-19
 
 ### Added
 - Calendar - update when 'displayLoadingIndicator' changes (PR #939).
@@ -610,6 +610,77 @@
 ## [1.1255.0] - 2021-4-4
 ### Added
 - AgendaList - 'avoidDateUpdates' prop to block the date updates to CalendarContextProvider when list scrolls.
-- 
+
 ### Fix
 - ExpandableCalendar - Android RTL issues (PR #1449).
+
+
+## [1.1256.0] - 2021-4-20
+
+### Fix
+- ExpandableCalendar - static header month update.
+
+## [1.1257.0] - 2021-4-20
+
+### Fix
+- Calendar & Agenda - remove usage of ViewPropTypes (PR #1424).
+- CalendarList - fix FlatList not rendering on web (PR #1405).
+- CalendarList - fix undefined horizontal prop in CalendarListItem (PR #1451).
+- Agenda - update 'selectedDate' on state when prop changes (PR #1080).
+
+## [1.1258.0] - 2021-4-22
+
+### Fix
+- Reverting: ExpandableCalendar - static header month update (version 1.1256.0).
+
+## [1.1259.0] - 2021-4-27
+
+### Changed
+- moment js as an optional dependency (PR #1446).
+
+### Added
+- CalendarList - 'animateScroll' prop to allow animation on ato list scroll (i.e. on arrow press).
+
+
+## [1.1260.0] - 2021-5-5
+
+### Added
+- Export CalendarContext.
+
+## [1.1261.0] - 2021-5-20
+
+### Added
+- CalendarHeader - individual day header style overrides (PR #1465).
+- ExpandableCalendar - 'openThreshold' and 'closeThreshold' props (PR #1476).
+- 'eslint-plugin-react-native' to dev-dependencies.
+
+### Changed
+- Update gradle version to 6.3 (PR #1479).
+- CalendarList example screen - adding functionality.
+
+### Fix
+- WeekCalendar - avoid updating when staying on the same week (PR #1482).
+- ExpandableCalendar - fix the markedDates we pass to WeekCalendar (PR #1483).
+
+### Performance
+- Remove inline style.
+- Remove object creation on passed props.
+- Improve examples.
+- Memoize methods and styles.
+- Additional tools - 'toMarkingFormat', 'isToday'.
+- ExpandableCalendar - setting selected date using 'state' prop instead of 'markedDates'.
+
+## [1.1262.0] - 2021-5-23
+
+### Changed
+- AgendaList - Remove arrow function from 'onScrollToIndexFailed' and omit 'context' passed to SectionList.
+
+## [1.1263.0] - 2021-6-3
+
+## Changed
+- Files formatting (PR #1513).
+- ExpandableCalendar demo - improving 'renderItem' example.
+
+## Fixed
+- Day - passed props for custom 'dayComponent'.
+- WeekCalendar - update marking on disabled day press.

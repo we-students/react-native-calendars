@@ -1,8 +1,10 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import XDate from 'xdate';
+
 import React, {Component} from 'react';
 import {FlatList, Platform, Dimensions, View} from 'react-native';
+
 import {extractComponentProps} from '../component-updater';
 import {xdateToData, parseDate} from '../interface';
 import dateutils from '../dateutils';
@@ -40,7 +42,8 @@ class CalendarList extends Component {
     staticHeader: PropTypes.bool,
     /** Enable or disable vertical / horizontal scroll indicator. Default = false */
     showScrollIndicator: PropTypes.bool,
-
+    /** Whether to animate the auto month scroll */
+    animateScroll: PropTypes.bool,
     /** Enable or disable scrolling of calendar list */
     scrollEnabled: PropTypes.bool,
     /** When true, the calendar list scrolls to top when the status bar is tapped. Default = true */
@@ -157,14 +160,14 @@ class CalendarList extends Component {
   }
 
   scrollToMonth = m => {
-    const {horizontal, calendarHeight, calendarWidth, pastScrollRange} = this.props;
+    const {horizontal, calendarHeight, calendarWidth, pastScrollRange, animateScroll = false} = this.props;
     const month = parseDate(m);
     const scrollTo = month || this.state.openDate;
     let diffMonths = Math.round(this.state.openDate.clone().setDate(1).diffMonths(scrollTo.clone().setDate(1)));
     const size = horizontal ? calendarWidth : calendarHeight;
     const scrollAmount = size * pastScrollRange + diffMonths * size;
 
-    this.listView.scrollToOffset({offset: scrollAmount, animated: false});
+    this.listView.scrollToOffset({offset: scrollAmount, animated: animateScroll});
   };
 
   getItemLayout = (data, index) => {
@@ -191,21 +194,16 @@ class CalendarList extends Component {
       return;
     }
 
-    this.setState(
-      {
-        currentMonth: day.clone()
-      },
-      () => {
-        this.scrollToMonth(this.state.currentMonth);
+    this.setState({currentMonth: day.clone()}, () => {
+      this.scrollToMonth(this.state.currentMonth);
 
-        if (!doNotTriggerListeners) {
-          const currMont = this.state.currentMonth.clone();
+      if (!doNotTriggerListeners) {
+        const currMont = this.state.currentMonth.clone();
 
-          _.invoke(this.props, 'onMonthChange', xdateToData(currMont));
-          _.invoke(this.props, 'onVisibleMonthsChange', [xdateToData(currMont)]);
-        }
+        _.invoke(this.props, 'onMonthChange', xdateToData(currMont));
+        _.invoke(this.props, 'onVisibleMonthsChange', [xdateToData(currMont)]);
       }
-    );
+    });
   }
 
   onViewableItemsChanged = ({viewableItems}) => {
@@ -254,6 +252,7 @@ class CalendarList extends Component {
         item={item}
         testID={`${testID}_${item}`}
         style={calendarStyle}
+        horizontal={horizontal}
         calendarWidth={horizontal ? calendarWidth : undefined}
         scrollToMonth={this.scrollToMonth}
       />
@@ -284,7 +283,7 @@ class CalendarList extends Component {
     const {style, pastScrollRange, futureScrollRange, horizontal, showScrollIndicator, testID} = this.props;
 
     return (
-      <View>
+      <View style={this.style.flatListContainer}>
         <FlatList
           ref={c => (this.listView = c)}
           style={[this.style.container, style]}

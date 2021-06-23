@@ -1,15 +1,15 @@
 import _ from 'lodash';
-import moment from 'moment';
+import XDate from 'xdate';
 import React, {useState, Fragment} from 'react';
 import {StyleSheet, View, ScrollView, Text, TouchableOpacity, Switch} from 'react-native';
 import {Calendar} from 'react-native-calendars';
 
 const testIDs = require('../testIDs');
+const INITIAL_DATE = '2020-02-02';
 
 const CalendarsScreen = () => {
-  const [selected, setSelected] = useState('');
+  const [selected, setSelected] = useState(INITIAL_DATE);
   const [showMarkedDatesExamples, setShowMarkedDatesExamples] = useState(false);
-
 
   const toggleSwitch = () => {
     setShowMarkedDatesExamples(!showMarkedDatesExamples);
@@ -21,12 +21,12 @@ const CalendarsScreen = () => {
 
   const getDisabledDates = (startDate, endDate, daysToDisable) => {
     const disabledDates = {};
-    const start = moment(startDate);
-    const end = moment(endDate);
+    const start = XDate(startDate);
+    const end = XDate(endDate);
 
-    for (let m = moment(start); m.diff(end, 'days') <= 0; m.add(1, 'days')) {
+    for (let m = XDate(start); m.diffDays(end) <= 0; m.addDays(1)) {
       if (_.includes(daysToDisable, m.weekday())) {
-        disabledDates[m.format('YYYY-MM-DD')] = {disabled: true};
+        disabledDates[m.toString('YYYY-MM-DD')] = {disabled: true};
       }
     }
     return disabledDates;
@@ -38,7 +38,7 @@ const CalendarsScreen = () => {
         <Text style={styles.text}>Calendar with selectable date</Text>
         <Calendar
           testID={testIDs.calendars.FIRST}
-          current={'2020-02-02'}
+          current={INITIAL_DATE}
           style={styles.calendar}
           onDayPress={onDayPress}
           markedDates={{
@@ -354,18 +354,13 @@ const CalendarsScreen = () => {
       <Fragment>
         <Text style={styles.text}>Calendar with custom day component</Text>
         <Calendar
-          style={[
-            styles.calendar,
-            {
-              height: 250,
-              borderBottomWidth: 1,
-              borderBottomColor: 'lightgrey'
-            }
-          ]}
+          style={[styles.calendar, styles.customCalendar]}
           dayComponent={({date, state}) => {
             return (
               <View>
-                <Text style={{textAlign: 'center', color: state === 'disabled' ? 'gray' : 'purple'}}>{date.day}</Text>
+                <Text style={[styles.customDay, state === 'disabled' ? styles.disabledText : styles.defaultText]}>
+                  {date.day}
+                </Text>
               </View>
             );
           }}
@@ -377,17 +372,7 @@ const CalendarsScreen = () => {
   const renderCalendarWithCustomHeader = () => {
     const CustomHeader = React.forwardRef((props, ref) => {
       return (
-        <View
-          ref={ref}
-          {...props}
-          style={{
-            backgroundColor: '#FCC',
-            flexDirection: 'row',
-            justifyContent: 'space-around',
-            marginHorizontal: -4,
-            padding: 8
-          }}
-        >
+        <View ref={ref} {...props} style={styles.customHeader}>
           <Text>This is a custom header!</Text>
           <TouchableOpacity onPress={() => console.warn('Tapped!')}>
             <Text>Tap Me</Text>
@@ -401,14 +386,7 @@ const CalendarsScreen = () => {
         <Text style={styles.text}>Calendar with custom header component</Text>
         <Calendar
           testID={testIDs.calendars.LAST}
-          style={[
-            styles.calendar,
-            {
-              height: 250,
-              borderBottomWidth: 1,
-              borderBottomColor: 'lightgrey'
-            }
-          ]}
+          style={[styles.calendar, styles.customCalendar]}
           customHeader={CustomHeader}
         />
       </Fragment>
@@ -440,15 +418,16 @@ const CalendarsScreen = () => {
     );
   };
 
-  const renderSwitch = () => { // Workaround for Detox 18 migration bug
+  const renderSwitch = () => {
+    // Workaround for Detox 18 migration bug
     return (
-      <View style={{flexDirection: 'row', margin: 10, alignItems: 'center'}}>
+      <View style={styles.switchContainer}>
         <Switch
           trackColor={{false: '#d9e1e8', true: '#00BBF2'}}
           onValueChange={toggleSwitch}
           value={showMarkedDatesExamples}
         />
-        <Text style={{margin: 10, fontSize: 16}}>Show markings examples</Text>
+        <Text style={styles.switchText}>Show markings examples</Text>
       </View>
     );
   };
@@ -474,10 +453,40 @@ const styles = StyleSheet.create({
   calendar: {
     marginBottom: 10
   },
+  switchContainer: {
+    flexDirection: 'row',
+    margin: 10,
+    alignItems: 'center'
+  },
+  switchText: {
+    margin: 10,
+    fontSize: 16
+  },
   text: {
     textAlign: 'center',
     padding: 10,
     backgroundColor: 'lightgrey',
     fontSize: 16
+  },
+  disabledText: {
+    color: 'grey'
+  },
+  defaultText: {
+    color: 'purple'
+  },
+  customCalendar: {
+    height: 250,
+    borderBottomWidth: 1,
+    borderBottomColor: 'lightgrey'
+  },
+  customDay: {
+    textAlign: 'center'
+  },
+  customHeader: {
+    backgroundColor: '#FCC',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginHorizontal: -4,
+    padding: 8
   }
 });

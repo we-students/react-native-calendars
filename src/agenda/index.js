@@ -1,10 +1,13 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import XDate from 'xdate';
+import memoize from 'memoize-one';
+
 import React, {Component} from 'react';
-import * as ReactNative from 'react-native';
+import {Text, View, Dimensions, Animated} from 'react-native';
+
 import {extractComponentProps} from '../component-updater';
-import {parseDate, xdateToData} from '../interface';
+import {parseDate, xdateToData, toMarkingFormat} from '../interface';
 import dateutils from '../dateutils';
 import {AGENDA_CALENDAR_KNOB} from '../testIDs';
 import {VelocityTracker} from '../input';
@@ -14,11 +17,6 @@ import ReservationList from './reservation-list';
 
 const HEADER_HEIGHT = 104;
 const KNOB_HEIGHT = 24;
-
-//Fallback for react-native-web or when RN version is < 0.44
-const {Text, View, Dimensions, Animated, ViewPropTypes} = ReactNative;
-const viewPropTypes =
-  typeof document !== 'undefined' ? PropTypes.shape({style: PropTypes.object}) : ViewPropTypes || View.propTypes;
 
 /**
  * @description: Agenda component
@@ -34,7 +32,7 @@ export default class AgendaView extends Component {
     ...CalendarList.propTypes,
     ...ReservationList.propTypes,
     /** agenda container style */
-    style: viewPropTypes.style,
+    style: PropTypes.oneOfType([PropTypes.object, PropTypes.array, PropTypes.number]),
     /** the list of items that have to be displayed in agenda. If you want to render item as empty date
      the value of date key has to be an empty array []. If there exists no value for date key it is
      considered that the date in question is not yet loaded */
@@ -48,8 +46,8 @@ export default class AgendaView extends Component {
     /** callback that gets called when day changes while scrolling agenda list */
     onDaychange: PropTypes.func, //TODO: Should be renamed 'onDayChange'
     /** specify how agenda knob should look like */
-    renderKnob: PropTypes.func, 
-    /** initially selected day */ 
+    renderKnob: PropTypes.func,
+    /** initially selected day */
     selected: PropTypes.any, //TODO: Should be renamed 'selectedDay'
     /** Hide knob button. Default = false */
     hideKnob: PropTypes.bool
@@ -93,7 +91,9 @@ export default class AgendaView extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (!prevProps.items) {
+    if (this.props.selected && !dateutils.sameDate(parseDate(this.props.selected), parseDate(prevProps.selected))) {
+      this.setState({selectedDay: parseDate(this.props.selected)});
+    } else if (!prevProps.items) {
       this.loadReservations(this.props);
     }
   }
@@ -181,22 +181,19 @@ export default class AgendaView extends Component {
     _.invoke(this.props, 'onDayPress', xdateToData(day));
   }
 
-  generateMarkings = () => {
-    const {markedDates, items} = this.props;
-    let markings = markedDates;
-
-    if (!markings) {
-      markings = {};
-      Object.keys(items || {}).forEach(key => {
+  generateMarkings = memoize((selectedDay, markedDates, items = {}) => {
+    if (!markedDates) {
+      markedDates = {};
+      Object.keys(items).forEach(key => {
         if (items[key] && items[key].length) {
-          markings[key] = {marked: true};
+          markedDates[key] = {marked: true};
         }
       });
     }
 
-    const key = this.state.selectedDay.toString('yyyy-MM-dd');
-    return {...markings, [key]: {...(markings[key] || {}), ...{selected: true}}};
-  };
+    const key = toMarkingFormat(selectedDay);
+    return {...markedDates, [key]: {...(markedDates[key] || {}), ...{selected: true}}};
+  });
 
   onScrollPadLayout = () => {
     // When user touches knob, the actual component that receives touch events is a ScrollView.
@@ -300,6 +297,7 @@ export default class AgendaView extends Component {
   }
 
   renderCalendarList() {
+    const {markedDates, items} = this.props;
     const shouldHideExtraDays = this.state.calendarScrollable ? this.props.hideExtraDays : false;
     const calendarListProps = extractComponentProps(CalendarList, this.props);
 
@@ -308,7 +306,7 @@ export default class AgendaView extends Component {
         {...calendarListProps}
         ref={c => (this.calendar = c)}
         current={this.currentMonth}
-        markedDates={this.generateMarkings()}
+        markedDates={this.generateMarkings(this.state.selectedDay, markedDates, items)}
         calendarWidth={this.viewWidth}
         scrollEnabled={this.state.calendarScrollable}
         hideExtraDays={shouldHideExtraDays}
@@ -334,10 +332,22 @@ export default class AgendaView extends Component {
     return knob;
   }
 
+  renderWeekDaysNames = memoize(weekDaysNames => {
+    return weekDaysNames.map((day, index) => (
+      <Text allowFontScaling={false} key={day + index} style={this.style.weekday} numberOfLines={1}>
+        {day}
+      </Text>
+    ));
+  });
+
+  renderWeekNumbersSpace = () => {
+    return this.props.showWeekNumbers && <View allowFontScaling={false} style={this.style.weekday} numberOfLines={1} />;
+  };
+
   render() {
-    const {firstDay, hideKnob, showWeekNumbers, style, testID} = this.props;
-    const agendaHeight = this.initialScrollPadPosition();
+    const {firstDay, hideKnob, style, testID} = this.props;
     const weekDaysNames = dateutils.weekDayNames(firstDay);
+    const agendaHeight = this.initialScrollPadPosition();
     const weekdaysStyle = [
       this.style.weekdays,
       {
@@ -393,21 +403,17 @@ export default class AgendaView extends Component {
     };
 
     return (
-      <View testID={testID} onLayout={this.onLayout} style={[style, {flex: 1, overflow: 'hidden'}]}>
+      <View testID={testID} onLayout={this.onLayout} style={[style, this.style.container]}>
         <View style={this.style.reservations}>{this.renderReservations()}</View>
         <Animated.View style={headerStyle}>
-          <Animated.View style={{flex: 1, transform: [{translateY: contentTranslate}]}}>
+          <Animated.View style={[this.style.animatedContainer, {transform: [{translateY: contentTranslate}]}]}>
             {this.renderCalendarList()}
           </Animated.View>
           {this.renderKnob()}
         </Animated.View>
         <Animated.View style={weekdaysStyle}>
-          {showWeekNumbers && <Text allowFontScaling={false} style={this.style.weekday} numberOfLines={1}></Text>}
-          {weekDaysNames.map((day, index) => (
-            <Text allowFontScaling={false} key={day + index} style={this.style.weekday} numberOfLines={1}>
-              {day}
-            </Text>
-          ))}
+          {this.renderWeekNumbersSpace()}
+          {this.renderWeekDaysNames(weekDaysNames)}
         </Animated.View>
         <Animated.ScrollView
           ref={ref => (this.scrollPad = ref)}
