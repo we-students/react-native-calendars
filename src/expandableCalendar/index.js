@@ -25,7 +25,6 @@ const BOUNCINESS = 6;
 const CLOSED_HEIGHT = 106; // header + 1 week + 6 
 const WEEK_HEIGHT = 46;
 const KNOB_CONTAINER_HEIGHT = 30;
-const HEADER_HEIGHT = 68;
 const DAY_NAMES_PADDING = 24;
 const PAN_GESTURE_THRESHOLD = 30;
 
