@@ -4,6 +4,7 @@ import * as defaultStyle from '../style';
 const commons = require('./commons');
 const STYLESHEET_ID = 'stylesheet.expandable.main';
 export const HEADER_HEIGHT = 68;
+export const WEEK_HEIGHT = 46;
 
 export default function styleConstructor(theme = {}) {
   const appStyle = {...defaultStyle, ...theme};

@@ -7,7 +7,7 @@ import XDate from 'xdate';
 import {CALENDAR_KNOB} from '../testIDs';
 import dateutils from '../dateutils';
 import {parseDate, toMarkingFormat} from '../interface';
-import styleConstructor, {HEADER_HEIGHT} from './style';
+import styleConstructor, {HEADER_HEIGHT, WEEK_HEIGHT} from './style';
 import CalendarList from '../calendar-list';
 import Calendar from '../calendar';
 import asCalendarConsumer from './asCalendarConsumer';
@@ -23,7 +23,6 @@ const POSITIONS = {
 const SPEED = 20;
 const BOUNCINESS = 6;
 const CLOSED_HEIGHT = 106; // header + 1 week + 6 
-const WEEK_HEIGHT = 46;
 const KNOB_CONTAINER_HEIGHT = 30;
 const DAY_NAMES_PADDING = 24;
 const PAN_GESTURE_THRESHOLD = 30;

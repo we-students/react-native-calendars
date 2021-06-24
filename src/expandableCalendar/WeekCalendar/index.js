@@ -9,7 +9,7 @@ import {Map} from 'immutable';
 import {extractComponentProps} from '../../component-updater';
 import {weekDayNames} from '../../dateutils';
 import {toMarkingFormat} from '../../interface';
-import styleConstructor from '../style';
+import styleConstructor, {WEEK_HEIGHT} from '../style';
 import asCalendarConsumer from '../asCalendarConsumer';
 import CalendarList from '../../calendar-list';
 import Week from '../week';
@@ -195,7 +195,7 @@ class WeekCalendar extends Component {
     return (
       <View
         testID={this.props.testID}
-        style={[allowShadow && this.style.containerShadow, !hideDayNames && this.style.containerWrapper]}
+        style={[allowShadow && this.style.containerShadow, !hideDayNames && this.style.containerWrapper, {height: WEEK_HEIGHT}]}
       >
         {!hideDayNames && (
           <View style={[this.style.week, this.style.weekCalendar]}>
