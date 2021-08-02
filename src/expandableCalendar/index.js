@@ -13,6 +13,7 @@ import Calendar from '../calendar';
 import asCalendarConsumer from './asCalendarConsumer';
 import WeekCalendar from './WeekCalendar';
 import Week from './week';
+import {TouchableOpacity} from 'react-native-gesture-handler'
 
 const commons = require('./commons');
 const UPDATE_SOURCES = commons.UPDATE_SOURCES;
@@ -424,15 +425,17 @@ class ExpandableCalendar extends Component {
 
   renderWeekCalendar() {
     const {position} = this.state;
-    const {disableWeekScroll} = this.props;
+    const {disableWeekScroll, theme} = this.props;
     const WeekComponent = disableWeekScroll ? Week : WeekCalendar;
+    const themeObject = Object.assign(this.headerStyleOverride, theme);
 
     return (
       <Animated.View
         ref={e => (this.weekCalendar = e)}
         style={[this.style.weekContainer, position === POSITIONS.OPEN ? this.style.hidden : this.style.visible, {
           opacity: position === POSITIONS.OPEN ? 0 : 1,
-          height: CLOSED_HEIGHT - HEADER_HEIGHT
+          height: CLOSED_HEIGHT - HEADER_HEIGHT + 22,
+          backgroundColor: themeObject.calendarBackground, 
         }]}
         pointerEvents={position === POSITIONS.CLOSED ? 'auto' : 'none'}
       >
@@ -452,15 +455,19 @@ class ExpandableCalendar extends Component {
 
   renderKnob() {
     // TODO: turn to TouchableOpacity with onPress that closes it
-    const { renderKnob } = this.props
+    const { renderKnob, theme } = this.props
+    const themeObject = Object.assign(this.headerStyleOverride, theme);
+
+    console.log('themeObject', themeObject);
+
     return (
-      <Pressable onPress={() => { 
+      <TouchableOpacity activeOpacity={1} pointerEvents="box-only" style={{height: 40, paddingTop: 20}} onPress={() => { 
         this.bounceToPosition(this.state.position === POSITIONS.OPEN ? CLOSED_HEIGHT + KNOB_CONTAINER_HEIGHT : this.getOpenHeight())
       }}>
-        <View style={[this.style.knobContainer, { height: 1, width: '100%'}]}  testID={`${this.props.testID}-knob`}>
+        <View  testID={`${this.props.testID}-knob`}>
           {renderKnob ? renderKnob() : (<View style={this.style.knob} testID={CALENDAR_KNOB} />)}
         </View>
-      </Pressable>
+      </TouchableOpacity>
 
     );
   }
@@ -497,29 +504,33 @@ class ExpandableCalendar extends Component {
             renderArrow={this.renderArrow}
           />
         ) : (
-          <Animated.View ref={e => (this.wrapper = e)} style={{height: deltaY}} {...this.panResponder.panHandlers}>
-            <CalendarList
-              testID="calendar"
-              horizontal={horizontal}
-              {...others}
-              theme={themeObject}
-              ref={r => (this.calendar = r)}
-              current={this.initialDate}
-              onDayPress={this.onDayPress}
-              onVisibleMonthsChange={this.onVisibleMonthsChange}
-              pagingEnabled
-              scrollEnabled={isOpen}
-              hideArrows={this.shouldHideArrows()}
-              onPressArrowLeft={this.onPressArrowLeft}
-              onPressArrowRight={this.onPressArrowRight}
-              hideExtraDays={!horizontal}
-              renderArrow={this.renderArrow}
-              staticHeader
-            />
-            {horizontal && this.renderWeekCalendar()}
-            {!hideKnob && this.renderKnob()}
-            {!horizontal && this.renderHeader()}
-          </Animated.View>
+          <>
+            <Animated.View ref={e => (this.wrapper = e)} style={{height: deltaY}} {...this.panResponder.panHandlers}>
+              <CalendarList
+                testID="calendar"
+                horizontal={horizontal}
+                {...others}
+                theme={themeObject}
+                ref={r => (this.calendar = r)}
+                current={this.initialDate}
+                onDayPress={this.onDayPress}
+                onVisibleMonthsChange={this.onVisibleMonthsChange}
+                pagingEnabled
+                scrollEnabled={isOpen}
+                hideArrows={this.shouldHideArrows()}
+                onPressArrowLeft={this.onPressArrowLeft}
+                onPressArrowRight={this.onPressArrowRight}
+                hideExtraDays={!horizontal}
+                renderArrow={this.renderArrow}
+                staticHeader
+              />
+              {horizontal && this.renderWeekCalendar()}
+              {!horizontal && this.renderHeader()}
+            </Animated.View>
+            <View style={{position: 'absolute', bottom: -20, height: 40, width: '100%'}}>
+              {!hideKnob && this.renderKnob()}
+            </View>
+          </>
         )}
       </View>
     );
