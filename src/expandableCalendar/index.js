@@ -461,7 +461,7 @@ class ExpandableCalendar extends Component {
     console.log('themeObject', themeObject);
 
     return (
-      <TouchableOpacity activeOpacity={1} pointerEvents="box-only" style={{height: 40, paddingTop: 20}} onPress={() => { 
+      <TouchableOpacity activeOpacity={1} pointerEvents="box-only" style={{height: 30, paddingTop: 15}} onPress={() => { 
         this.bounceToPosition(this.state.position === POSITIONS.OPEN ? CLOSED_HEIGHT + KNOB_CONTAINER_HEIGHT : this.getOpenHeight())
       }}>
         <View  testID={`${this.props.testID}-knob`}>
@@ -527,7 +527,7 @@ class ExpandableCalendar extends Component {
               {horizontal && this.renderWeekCalendar()}
               {!horizontal && this.renderHeader()}
             </Animated.View>
-            <View style={{position: 'absolute', bottom: -20, height: 40, width: '100%'}}>
+            <View style={{position: 'absolute', bottom: -15, height: 30, width: '100%'}}>
               {!hideKnob && this.renderKnob()}
             </View>
           </>
