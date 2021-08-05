@@ -198,7 +198,7 @@ export default class BasicDay extends Component<BasicDayProps> {
     return (
       <Fragment>
         <View 
-        style={this.getContainerStyle()}>
+        style={[...this.getContainerStyle(), { borderRadius: 16}]}>
         {this.renderText()}
         </View>
         {this.renderMarking()}
