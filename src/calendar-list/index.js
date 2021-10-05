@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import XDate from 'xdate';
 
 import React, {Component} from 'react';
-import {FlatList, Platform, Dimensions, View} from 'react-native';
+import {FlatList, Platform, Dimensions, View, Animated} from 'react-native';
 
 import {extractComponentProps} from '../component-updater';
 import {xdateToData, parseDate} from '../interface';
@@ -59,7 +59,9 @@ class CalendarList extends Component {
     /** How far from the end to trigger the onEndReached callback */
     onEndReachedThreshold: PropTypes.number,
     /** Called once when the scroll position gets within onEndReachedThreshold */
-    onEndReached: PropTypes.func
+    onEndReached: PropTypes.func,
+
+    deltaOpacity: PropTypes.any
   };
 
   static defaultProps = {
@@ -280,34 +282,37 @@ class CalendarList extends Component {
   }
 
   render() {
-    const {style, pastScrollRange, futureScrollRange, horizontal, showScrollIndicator, testID} = this.props;
+    const {style, pastScrollRange, futureScrollRange, horizontal, showScrollIndicator, testID, deltaOpacity} =
+      this.props;
 
     return (
       <View style={this.style.flatListContainer}>
-        <FlatList
-          ref={c => (this.listView = c)}
-          style={[this.style.container, style]}
-          initialListSize={pastScrollRange + futureScrollRange + 1} // ListView deprecated
-          data={this.state.rows}
-          renderItem={this.renderItem}
-          getItemLayout={this.getItemLayout}
-          onViewableItemsChanged={this.onViewableItemsChanged}
-          viewabilityConfig={this.viewabilityConfig}
-          initialScrollIndex={this.state.openDate ? this.getMonthIndex(this.state.openDate) : false}
-          showsVerticalScrollIndicator={showScrollIndicator}
-          showsHorizontalScrollIndicator={horizontal && showScrollIndicator}
-          testID={testID}
-          onLayout={this.props.onLayout}
-          removeClippedSubviews={this.props.removeClippedSubviews}
-          pagingEnabled={this.props.pagingEnabled}
-          scrollEnabled={this.props.scrollEnabled}
-          scrollsToTop={this.props.scrollsToTop}
-          horizontal={this.props.horizontal}
-          keyboardShouldPersistTaps={this.props.keyboardShouldPersistTaps}
-          keyExtractor={this.props.keyExtractor}
-          onEndReachedThreshold={this.props.onEndReachedThreshold}
-          onEndReached={this.props.onEndReached}
-        />
+        <Animated.View style={{opacity: deltaOpacity}}>
+          <FlatList
+            ref={c => (this.listView = c)}
+            style={[this.style.container, style]}
+            initialListSize={pastScrollRange + futureScrollRange + 1} // ListView deprecated
+            data={this.state.rows}
+            renderItem={this.renderItem}
+            getItemLayout={this.getItemLayout}
+            onViewableItemsChanged={this.onViewableItemsChanged}
+            viewabilityConfig={this.viewabilityConfig}
+            initialScrollIndex={this.state.openDate ? this.getMonthIndex(this.state.openDate) : false}
+            showsVerticalScrollIndicator={showScrollIndicator}
+            showsHorizontalScrollIndicator={horizontal && showScrollIndicator}
+            testID={testID}
+            onLayout={this.props.onLayout}
+            removeClippedSubviews={this.props.removeClippedSubviews}
+            pagingEnabled={this.props.pagingEnabled}
+            scrollEnabled={this.props.scrollEnabled}
+            scrollsToTop={this.props.scrollsToTop}
+            horizontal={this.props.horizontal}
+            keyboardShouldPersistTaps={this.props.keyboardShouldPersistTaps}
+            keyExtractor={this.props.keyExtractor}
+            onEndReachedThreshold={this.props.onEndReachedThreshold}
+            onEndReached={this.props.onEndReached}
+          />
+        </Animated.View>
         {this.renderStaticHeader()}
       </View>
     );

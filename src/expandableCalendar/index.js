@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import React, {Component} from 'react';
-import {AccessibilityInfo, PanResponder, Animated, View, Text, Image, Pressable} from 'react-native';
+import {AccessibilityInfo, PanResponder, Animated, View, Text, Image, TouchableOpacity} from 'react-native';
 import PropTypes from 'prop-types';
 import memoize from 'memoize-one';
 import XDate from 'xdate';
@@ -13,7 +13,6 @@ import Calendar from '../calendar';
 import asCalendarConsumer from './asCalendarConsumer';
 import WeekCalendar from './WeekCalendar';
 import Week from './week';
-import {TouchableOpacity} from 'react-native-gesture-handler'
 
 const commons = require('./commons');
 const UPDATE_SOURCES = commons.UPDATE_SOURCES;
@@ -23,7 +22,7 @@ const POSITIONS = {
 };
 const SPEED = 20;
 const BOUNCINESS = 6;
-const CLOSED_HEIGHT = 106; // header + 1 week + 6 
+const CLOSED_HEIGHT = 106; // header + 1 week + 6
 const KNOB_CONTAINER_HEIGHT = 30;
 const DAY_NAMES_PADDING = 24;
 const PAN_GESTURE_THRESHOLD = 30;
@@ -110,6 +109,7 @@ class ExpandableCalendar extends Component {
     };
 
     this.state = {
+      deltaOpacity: new Animated.Value(props.initialPosition === POSITIONS.CLOSED ? 0 : 1),
       deltaY: new Animated.Value(startHeight),
       headerDeltaY: new Animated.Value(props.initialPosition === POSITIONS.CLOSED ? 0 : -HEADER_HEIGHT),
       position: props.initialPosition,
@@ -261,6 +261,14 @@ class ExpandableCalendar extends Component {
       // horizontal Week view
       if (this.state.position === POSITIONS.CLOSED) {
         this._weekCalendarStyles.style.opacity = Math.min(1, Math.max(1 - gestureState.dy / 100, 0));
+
+        const opacityValue = Math.min(1, Math.max(gestureState.dy / 100, 0));
+        Animated.spring(this.state.deltaOpacity, {
+          toValue: opacityValue,
+          speed: SPEED,
+          bounciness: BOUNCINESS,
+          useNativeDriver: false
+        }).start();
       }
     }
 
@@ -299,6 +307,7 @@ class ExpandableCalendar extends Component {
       this.setPosition();
       this.closeHeader(isOpen);
       this.resetWeekCalendarOpacity(isOpen);
+      this.resetCalendarOpacity(isOpen);
     }
   }
 
@@ -316,6 +325,15 @@ class ExpandableCalendar extends Component {
   resetWeekCalendarOpacity(isOpen) {
     this._weekCalendarStyles.style.opacity = isOpen ? 0 : 1;
     this.updateNativeStyles();
+  }
+
+  resetCalendarOpacity(isOpen) {
+    Animated.spring(this.state.deltaOpacity, {
+      toValue: isOpen ? 1 : 0,
+      speed: SPEED,
+      bounciness: BOUNCINESS,
+      useNativeDriver: false
+    }).start();
   }
 
   closeHeader(isOpen) {
@@ -432,11 +450,15 @@ class ExpandableCalendar extends Component {
     return (
       <Animated.View
         ref={e => (this.weekCalendar = e)}
-        style={[this.style.weekContainer, position === POSITIONS.OPEN ? this.style.hidden : this.style.visible, {
-          opacity: position === POSITIONS.OPEN ? 0 : 1,
-          height: CLOSED_HEIGHT - HEADER_HEIGHT + 22,
-          backgroundColor: themeObject.calendarBackground, 
-        }]}
+        style={[
+          this.style.weekContainer,
+          position === POSITIONS.OPEN ? this.style.hidden : this.style.visible,
+          {
+            opacity: position === POSITIONS.OPEN ? 0 : 1,
+            height: 72, //CLOSED_HEIGHT - HEADER_HEIGHT + 22,
+            backgroundColor: themeObject.calendarBackground
+          }
+        ]}
         pointerEvents={position === POSITIONS.CLOSED ? 'auto' : 'none'}
       >
         <WeekComponent
@@ -455,20 +477,26 @@ class ExpandableCalendar extends Component {
 
   renderKnob() {
     // TODO: turn to TouchableOpacity with onPress that closes it
-    const { renderKnob, theme } = this.props
+    const {renderKnob, theme} = this.props;
     const themeObject = Object.assign(this.headerStyleOverride, theme);
 
     console.log('themeObject', themeObject);
 
     return (
-      <TouchableOpacity activeOpacity={1} pointerEvents="box-only" style={{height: 30, paddingTop: 15}} onPress={() => { 
-        this.bounceToPosition(this.state.position === POSITIONS.OPEN ? CLOSED_HEIGHT + KNOB_CONTAINER_HEIGHT : this.getOpenHeight())
-      }}>
-        <View  testID={`${this.props.testID}-knob`}>
-          {renderKnob ? renderKnob() : (<View style={this.style.knob} testID={CALENDAR_KNOB} />)}
+      <TouchableOpacity
+        activeOpacity={1}
+        pointerEvents="box-only"
+        style={{height: 30, paddingTop: 15}}
+        onPress={() => {
+          this.bounceToPosition(
+            this.state.position === POSITIONS.OPEN ? CLOSED_HEIGHT + KNOB_CONTAINER_HEIGHT : this.getOpenHeight()
+          );
+        }}
+      >
+        <View testID={`${this.props.testID}-knob`}>
+          {renderKnob ? renderKnob() : <View style={this.style.knob} testID={CALENDAR_KNOB} />}
         </View>
       </TouchableOpacity>
-
     );
   }
 
@@ -488,7 +516,7 @@ class ExpandableCalendar extends Component {
 
   render() {
     const {style, hideKnob, horizontal, allowShadow, theme, ...others} = this.props;
-    const {deltaY, position, screenReaderEnabled} = this.state;
+    const {deltaY, deltaOpacity, position, screenReaderEnabled} = this.state;
     const isOpen = position === POSITIONS.OPEN;
     const themeObject = Object.assign(this.headerStyleOverride, theme);
 
@@ -523,6 +551,7 @@ class ExpandableCalendar extends Component {
                 hideExtraDays={!horizontal}
                 renderArrow={this.renderArrow}
                 staticHeader
+                deltaOpacity={deltaOpacity}
               />
               {horizontal && this.renderWeekCalendar()}
               {!horizontal && this.renderHeader()}
