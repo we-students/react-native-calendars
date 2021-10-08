@@ -455,7 +455,7 @@ class ExpandableCalendar extends Component {
           position === POSITIONS.OPEN ? this.style.hidden : this.style.visible,
           {
             opacity: position === POSITIONS.OPEN ? 0 : 1,
-            height: 72, //CLOSED_HEIGHT - HEADER_HEIGHT + 22,
+            height: CLOSED_HEIGHT - HEADER_HEIGHT + 22,
             backgroundColor: themeObject.calendarBackground
           }
         ]}
